@@ -3,6 +3,7 @@ extends CharacterBody3D
 const SPEED = 5.0
 const JUMP_VELOCITY = 4.5
 const MOUSE_SENSITIVITY = 0.002
+const GAMEPAD_SENSITIVITY = 2.5
 
 # Get the gravity from the project settings to be synced with RigidBody nodes.
 var gravity = ProjectSettings.get_setting("physics/3d/default_gravity")
@@ -281,6 +282,8 @@ func _unhandled_input(event):
 			Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 
 func _physics_process(delta):
+	_handle_gamepad_look(delta)
+
 	var is_underwater = global_position.y < WATER_LEVEL - 1.0 # Slight buffer
 	
 	if is_underwater:
@@ -297,6 +300,15 @@ func _physics_process(delta):
 			environment.fog_density = original_fog_density
 
 	move_and_slide()
+
+# Gamepad camera look from the right stick (no extra input actions needed).
+func _handle_gamepad_look(delta):
+	var look = Vector2(Input.get_joy_axis(0, JOY_AXIS_RIGHT_X), Input.get_joy_axis(0, JOY_AXIS_RIGHT_Y))
+	if look.length() < 0.15:
+		return
+	rotate_y(-look.x * GAMEPAD_SENSITIVITY * delta)
+	camera.rotate_x(-look.y * GAMEPAD_SENSITIVITY * delta)
+	camera.rotation.x = clamp(camera.rotation.x, deg_to_rad(-90), deg_to_rad(90))
 
 func handle_swimming(delta):
 	# Buoyancy: Gravity is greatly reduced or reversed
