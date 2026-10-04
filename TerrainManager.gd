@@ -115,8 +115,10 @@ func update_chunks():
 func process_generation_queue():
 	if chunks_to_generate.is_empty(): return
 	
-	# Only start new tasks if we have capacity
-	while current_active_tasks < max_concurrent_tasks and not chunks_to_generate.is_empty():
+	# Only start new tasks if we have capacity, and at most two per frame so
+	# streaming stays smooth instead of spiking on a single frame.
+	var started_this_frame := 0
+	while started_this_frame < 2 and current_active_tasks < max_concurrent_tasks and not chunks_to_generate.is_empty():
 		var coord = chunks_to_generate.pop_front()
 		chunks_in_queue.erase(coord) # Remove from queue lookup
 		
