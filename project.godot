@@ -18,6 +18,8 @@ config/name="Best Game 3"
 run/main_scene="res://Intro.tscn"
 config/features=PackedStringArray("4.7", "GL Compatibility")
 config/icon="res://icon.svg"
+run/max_fps.mobile=60
+run/max_fps.web=60
 
 [editor_plugins]
 
@@ -88,3 +90,7 @@ pointing/emulate_mouse_from_touch=true
 quality/vegetation_step=8
 quality/vegetation_step.mobile=12
 quality/vegetation_step.web=12
+
+[physics]
+
+common/physics_ticks_per_second.mobile=30

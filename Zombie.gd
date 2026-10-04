@@ -98,12 +98,14 @@ func _physics_process(delta):
 	# Distant zombies skip animation and AI work; they only stay grounded.
 	var nearby_target = _get_player()
 	if nearby_target and global_position.distance_to(nearby_target.global_position) > 40.0:
+		visible = false # hidden far away: no draw cost
 		if not is_on_floor():
 			velocity.y -= gravity * delta
 		else:
 			velocity.y = -0.1
 		move_and_slide()
 		return
+	visible = true
 
 	# Gravity
 	if not is_on_floor():

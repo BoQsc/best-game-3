@@ -44,6 +44,7 @@ func _ready():
 	var water_mat = ShaderMaterial.new()
 	water_mat.shader = WATER_SHADER
 	_water.material_override = water_mat
+	_water.cast_shadow = 0 # transparent plane never needs a shadow pass
 	add_child(_water)
 
 signal initial_generation_finished
