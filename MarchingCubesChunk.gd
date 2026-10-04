@@ -49,6 +49,7 @@ var thread: Thread
 var mutex: Mutex = Mutex.new()
 var field: PackedFloat32Array
 var road_data: PackedFloat32Array
+var _vegetation_queue: Array[Vector2i] = []
 
 func _exit_tree():
 	if thread and thread.is_started():
@@ -360,47 +361,67 @@ func populate_vegetation():
 	var s = grid_size
 	var global_x = chunk_coord.x * grid_size
 	var global_z = chunk_coord.z * grid_size
-	
-	var space_state = get_world_3d().direct_space_state
-	# One reused query object instead of allocating one per candidate spot.
-	var query = PhysicsRayQueryParameters3D.create(Vector3.ZERO, Vector3.ZERO)
-	
+
+	_vegetation_queue.clear()
 	for x in range(2, s - 2, step):
 		for z in range(2, s - 2, step):
 			
 			var tree_val = noise.get_noise_2d((global_x + x) * 5.0, (global_z + z) * 5.0)
 			
 			if tree_val > 0.2:
-				# Raycast from top of chunk down
-				var from_pos = to_global(Vector3(x * scale_factor, grid_size * scale_factor, z * scale_factor))
-				var to_pos = to_global(Vector3(x * scale_factor, -10.0, z * scale_factor))
-				
-				query.from = from_pos
-				query.to = to_pos
-				
-				var result = space_state.intersect_ray(query)
-				
-				if result:
-					var hit_y = result.position.y
-					
-					# Biome Rules
-					if hit_y > 19.0 and hit_y < 50.0:
-						
-						# Road Check
-						# Convert local hit to grid index roughly
-						var local_hit = to_local(result.position)
-						var grid_y = int(local_hit.y / scale_factor)
-						var idx = x * (s+1)*(s+1) + clamp(grid_y, 0, s) * (s+1) + z
-						
-						if idx < road_data.size() and road_data[idx] < 0.5:
-							var tree = TREE_SCENE.instantiate()
-							add_child(tree)
-							# Use the EXACT raycast hit position (local)
-							tree.global_position = result.position
-							
-							tree.rotate_y(randf() * TAU)
-							var scale_mod = randf_range(0.8, 1.2)
-							tree.scale = Vector3(scale_mod, scale_mod, scale_mod)
+				_vegetation_queue.append(Vector2i(x, z))
+
+	set_process(not _vegetation_queue.is_empty())
+
+func _process(_delta):
+	if _vegetation_queue.is_empty():
+		set_process(false)
+		return
+	# Place a few trees per frame so finishing a chunk never spikes the frame.
+	_place_vegetation_batch(4)
+
+func _place_vegetation_batch(count: int):
+	var s = grid_size
+	var space_state = get_world_3d().direct_space_state
+	# One reused query object instead of allocating one per candidate spot.
+	var query = PhysicsRayQueryParameters3D.create(Vector3.ZERO, Vector3.ZERO)
+
+	while count > 0 and not _vegetation_queue.is_empty():
+		count -= 1
+		var cell = _vegetation_queue.pop_front()
+		var x = cell.x
+		var z = cell.y
+
+		# Raycast from top of chunk down
+		var from_pos = to_global(Vector3(x * scale_factor, grid_size * scale_factor, z * scale_factor))
+		var to_pos = to_global(Vector3(x * scale_factor, -10.0, z * scale_factor))
+
+		query.from = from_pos
+		query.to = to_pos
+
+		var result = space_state.intersect_ray(query)
+
+		if result:
+			var hit_y = result.position.y
+
+			# Biome Rules
+			if hit_y > 19.0 and hit_y < 50.0:
+				# Road Check: convert local hit to grid index roughly
+				var local_hit = to_local(result.position)
+				var grid_y = int(local_hit.y / scale_factor)
+				var idx = x * (s+1)*(s+1) + clamp(grid_y, 0, s) * (s+1) + z
+
+				if idx < road_data.size() and road_data[idx] < 0.5:
+					var tree = TREE_SCENE.instantiate()
+					add_child(tree)
+					tree.global_position = result.position
+
+					tree.rotate_y(randf() * TAU)
+					var scale_mod = randf_range(0.8, 1.2)
+					tree.scale = Vector3(scale_mod, scale_mod, scale_mod)
+
+	if _vegetation_queue.is_empty():
+		set_process(false)
 
 func vertex_interp(isolevel: float, p1: Vector3, p2: Vector3, val_p1: float, val_p2: float) -> Vector3:
 	if abs(isolevel - val_p1) < 0.00001: return p1
