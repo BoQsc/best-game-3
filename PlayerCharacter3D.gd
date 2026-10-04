@@ -239,7 +239,7 @@ func die():
 	get_tree().reload_current_scene()
 
 func update_health_ui():
-	var health_bar = get_node_or_null("/root/Node3D/CanvasLayer/HUDToolbelt/HealthBar")
+	var health_bar = get_node_or_null("/root/Node3D/HUDCanvasLayer/HUDToolbelt/HealthBar")
 	if health_bar:
 		# Assume initial width is full health. 
 		# Wait, HealthBar is a ColorRect. We can scale its x-size or pivot.
