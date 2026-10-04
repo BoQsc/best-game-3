@@ -42,6 +42,9 @@ func setup_extra_slots():
 				if ramp_scene:
 					var ramp = ramp_scene.instantiate()
 					node3d.add_child(ramp)
+				
+				# The preview is a static icon: render it once instead of every frame.
+				viewport.render_target_update_mode = SubViewport.UPDATE_ONCE
 
 func _input(event):
 	var changed = false
