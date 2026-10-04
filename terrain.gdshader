@@ -2,11 +2,11 @@ shader_type spatial;
 render_mode world_vertex_coords;
 
 // Textures
-uniform sampler2D grass_texture : source_color, filter_linear_mipmap_anisotropic;
-uniform sampler2D road_texture : source_color, filter_linear_mipmap_anisotropic;
-uniform sampler2D sand_texture : source_color, filter_linear_mipmap_anisotropic;
-uniform sampler2D rock_texture : source_color, filter_linear_mipmap_anisotropic;
-uniform sampler2D snow_texture : source_color, filter_linear_mipmap_anisotropic;
+uniform sampler2D grass_texture : source_color, filter_linear_mipmap;
+uniform sampler2D road_texture : source_color, filter_linear_mipmap;
+uniform sampler2D sand_texture : source_color, filter_linear_mipmap;
+uniform sampler2D rock_texture : source_color, filter_linear_mipmap;
+uniform sampler2D snow_texture : source_color, filter_linear_mipmap;
 
 uniform float texture_scale = 0.1;
 
