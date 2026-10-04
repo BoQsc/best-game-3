@@ -47,34 +47,40 @@ void fragment() {
     // 2. Calculate Texture Coordinates
     vec3 triplanar_pos = w_vertex * texture_scale;
 
-    // Sample all textures
+    // Sample only what this pixel needs: grass always, the rest only when
+    // their blend weight is non-zero (big saving on low-end / mobile GPUs).
     vec3 grass = triplanar_texture(grass_texture, power_normal, triplanar_pos).rgb;
-    vec3 road = triplanar_texture(road_texture, power_normal, triplanar_pos).rgb;
-    vec3 sand = triplanar_texture(sand_texture, power_normal, triplanar_pos).rgb;
-    vec3 rock = triplanar_texture(rock_texture, power_normal, triplanar_pos).rgb;
-    vec3 snow = triplanar_texture(snow_texture, power_normal, triplanar_pos).rgb;
-
     vec3 final_albedo = grass;
 
     // 1. Height Mixing (Sand vs Grass vs Snow)
     // Water is usually around 15.0. Beach up to 18.0.
     float sand_factor = 1.0 - smoothstep(15.0, 19.0, height);
-    final_albedo = mix(final_albedo, sand, sand_factor);
+    if (sand_factor > 0.001) {
+        vec3 sand = triplanar_texture(sand_texture, power_normal, triplanar_pos).rgb;
+        final_albedo = mix(final_albedo, sand, sand_factor);
+    }
 
     // Snow starts at 50, fully snow by 70
     float snow_factor = smoothstep(50.0, 70.0, height);
-    final_albedo = mix(final_albedo, snow, snow_factor);
+    if (snow_factor > 0.001) {
+        vec3 snow = triplanar_texture(snow_texture, power_normal, triplanar_pos).rgb;
+        final_albedo = mix(final_albedo, snow, snow_factor);
+    }
 
     // 2. Slope Mixing (Rock)
     // Use the pixel normal for slope check
     float slope = normal.y;
     float rock_factor = 1.0 - smoothstep(0.5, 0.8, slope);
-    
-    // Rock overrides sand/grass/snow
-    final_albedo = mix(final_albedo, rock, rock_factor);
+    if (rock_factor > 0.001) {
+        vec3 rock = triplanar_texture(rock_texture, power_normal, triplanar_pos).rgb;
+        final_albedo = mix(final_albedo, rock, rock_factor);
+    }
 
     // 3. Road Overlay (Man-made overrides everything)
-    final_albedo = mix(final_albedo, road, road_weight);
+    if (road_weight > 0.001) {
+        vec3 road = triplanar_texture(road_texture, power_normal, triplanar_pos).rgb;
+        final_albedo = mix(final_albedo, road, road_weight);
+    }
 
     ALBEDO = final_albedo;
     ROUGHNESS = 0.9;
