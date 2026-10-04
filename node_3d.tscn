@@ -614,7 +614,7 @@ environment = SubResource("Environment_noarx")
 
 [node name="DirectionalLight3D" type="DirectionalLight3D" parent="HUDCanvasLayer/HUDToolbelt/HBoxContainer/Slot0/SubViewportContainer/SubViewport2/Node3D"]
 transform = Transform3D(-0.8660254, -0.43301278, 0.25, 0, 0.49999997, 0.86602545, -0.50000006, 0.75, -0.43301266, 0, 0, 0)
-shadow_enabled = true
+shadow_enabled = false
 
 [node name="Border" type="ReferenceRect" parent="HUDCanvasLayer/HUDToolbelt/HBoxContainer/Slot0"]
 visible = false
@@ -674,7 +674,7 @@ environment = SubResource("Environment_noarx")
 
 [node name="DirectionalLight3D" type="DirectionalLight3D" parent="HUDCanvasLayer/HUDToolbelt/HBoxContainer/Slot1/SubViewportContainer/SubViewport/Node3D"]
 transform = Transform3D(-0.8660254, -0.43301278, 0.25, 0, 0.49999997, 0.86602545, -0.50000006, 0.75, -0.43301266, 0, 0, 0)
-shadow_enabled = true
+shadow_enabled = false
 
 [node name="Border" type="ReferenceRect" parent="HUDCanvasLayer/HUDToolbelt/HBoxContainer/Slot1"]
 visible = false
