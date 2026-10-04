@@ -358,9 +358,14 @@ func _generate(thread_ref):
 	st.index()
 	st.generate_normals()
 	
-	call_deferred("_finalize_mesh", st.commit(), thread_ref)
+	# Build the collision shape here, on the worker thread, so finalizing the
+	# chunk on the main thread stays cheap (no per-chunk hitch).
+	var new_mesh = st.commit()
+	var shape = new_mesh.create_trimesh_shape()
+	
+	call_deferred("_finalize_mesh", new_mesh, shape, thread_ref)
 
-func _finalize_mesh(new_mesh, thread_ref):
+func _finalize_mesh(new_mesh, shape, thread_ref):
 	if thread_ref and thread_ref.is_started():
 		thread_ref.wait_to_finish()
 	self.mesh = new_mesh
@@ -376,7 +381,7 @@ func _finalize_mesh(new_mesh, thread_ref):
 			
 	var sb = StaticBody3D.new()
 	var cs = CollisionShape3D.new()
-	cs.shape = new_mesh.create_trimesh_shape()
+	cs.shape = shape
 	sb.add_child(cs)
 	add_child(sb)
 	
