@@ -72,7 +72,7 @@ func _ready():
 	change_state("IDLE")
 
 func start_chase():
-	print("Zombie start_chase() called!")
+	print_verbose("Zombie start_chase() called!")
 	if current_state != "DEAD":
 		change_state("CHASE")
 
@@ -240,7 +240,7 @@ func pick_random_direction():
 
 func attack(player):
 	# Simple attack
-	print("Zombie Attacked Player!")
+	print_verbose("Zombie Attacked Player!")
 	if player.has_method("take_damage"):
 		player.take_damage(1)
 
@@ -249,7 +249,7 @@ func take_damage(amount: int):
 	if current_state == "DEAD": return
 	
 	current_health -= amount
-	print("Zombie took damage! HP: ", current_health)
+	print_verbose("Zombie took damage! HP: " + str(current_health))
 	
 	if current_health <= 0:
 		die()
@@ -261,7 +261,7 @@ func take_damage(amount: int):
 func die():
 	# Set state to DEAD through the state machine to stop sounds/animations properly
 	change_state("DEAD") 
-	print("Zombie Died!")
+	print_verbose("Zombie Died!")
 	velocity = Vector3.ZERO
 	
 	# Disable collision shape so we can walk through the corpse
