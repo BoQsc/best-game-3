@@ -50,6 +50,7 @@ var mutex: Mutex = Mutex.new()
 var field: PackedFloat32Array
 var road_data: PackedFloat32Array
 var _vegetation_queue: Array[Vector2i] = []
+var _pending_shapes: Array = []
 
 func _exit_tree():
 	if thread and thread.is_started():
@@ -337,21 +338,25 @@ func _finalize_mesh(new_mesh, shape, thread_ref):
 	if thread_ref and thread_ref.is_started():
 		thread_ref.wait_to_finish()
 	self.mesh = new_mesh
-	
+
+	# Queue the collision body instead of inserting it now: one body is added
+	# per frame so several chunks finishing together never spike the physics
+	# server on the main thread.
+	_pending_shapes.append(shape)
+	set_process(true)
+
+	generation_complete.emit(chunk_coord)
+
+func _add_collision_body(shape):
 	# Clear old collision shapes to prevent stacking/ghost collisions
 	for child in get_children():
 		if child is StaticBody3D:
 			child.queue_free()
-			
 	var sb = StaticBody3D.new()
 	var cs = CollisionShape3D.new()
 	cs.shape = shape
 	sb.add_child(cs)
 	add_child(sb)
-	
-	populate_vegetation()
-	
-	generation_complete.emit(chunk_coord)
 
 func populate_vegetation():
 	# Use Physics Raycast for perfect placement
@@ -374,6 +379,12 @@ func populate_vegetation():
 	set_process(not _vegetation_queue.is_empty())
 
 func _process(_delta):
+	# Collision bodies first (one per frame), then the deferred tree placement.
+	if not _pending_shapes.is_empty():
+		_add_collision_body(_pending_shapes.pop_front())
+		populate_vegetation()
+		return
+
 	if _vegetation_queue.is_empty():
 		set_process(false)
 		return

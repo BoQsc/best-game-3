@@ -7,7 +7,33 @@ extends Node3D
 
 const GAME_MUSIC = preload("res://sfx/forest-birds-55305.mp3")
 
+# Optional periodic performance log, enabled with bestgame/debug/perf_log.
+# Uses the engine's own Performance monitors so frame cost can be tracked from
+# the console instead of re-running a GPU profile.
+var _perf_log_enabled: bool = false
+var _perf_log_timer: float = 0.0
+
+func _process(delta):
+	if not _perf_log_enabled:
+		return
+	_perf_log_timer += delta
+	if _perf_log_timer < 2.0:
+		return
+	_perf_log_timer = 0.0
+	print("[perf] fps=%d draws=%d objects=%d nodes=%d physics=%.2fms process=%.2fms mem=%.0fMB" % [
+		Engine.get_frames_per_second(),
+		Performance.get_monitor(Performance.RENDER_TOTAL_DRAW_CALLS_IN_FRAME),
+		Performance.get_monitor(Performance.OBJECT_COUNT),
+		Performance.get_monitor(Performance.OBJECT_NODE_COUNT),
+		Performance.get_monitor(Performance.TIME_PHYSICS_PROCESS) * 1000.0,
+		Performance.get_monitor(Performance.TIME_PROCESS) * 1000.0,
+		Performance.get_monitor(Performance.MEMORY_STATIC) / 1048576.0,
+	])
+
 func _ready():
+	_perf_log_enabled = bool(ProjectSettings.get_setting("bestgame/debug/perf_log", false))
+	set_process(_perf_log_enabled)
+
 	# Start in Loading State
 	if loading_screen:
 		loading_screen.visible = true

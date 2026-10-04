@@ -85,6 +85,10 @@ pointing/emulate_mouse_from_touch=true
 
 [bestgame]
 
+; Set to true to print a periodic [perf] line (fps, draw calls, physics/process
+; time, memory). Handy for tracking regressions without a profiler.
+debug/perf_log=true
+
 ; Spacing (in grid cells) between vegetation placement tests. Larger = fewer
 ; trees/plants = cheaper. Mobile and web get a coarser step.
 quality/vegetation_step=8
