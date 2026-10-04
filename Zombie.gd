@@ -25,6 +25,7 @@ var chase_anim_variant: int = 0 # 0 = Standard, 1 = Calm Alerted
 @export var friction: float = 10.0
 
 var skeleton: Skeleton3D
+var _player: Node3D
 
 func _ready():
 	current_health = max_health
@@ -85,7 +86,9 @@ func find_skeleton(node: Node) -> Skeleton3D:
 	return null
 
 func _get_player() -> Node3D:
-	return get_tree().get_first_node_in_group("player")
+	if _player == null or not is_instance_valid(_player):
+		_player = get_tree().get_first_node_in_group("player")
+	return _player
 
 func _physics_process(delta):
 	if current_state == "DEAD" or not is_inside_tree():
