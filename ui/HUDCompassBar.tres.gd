@@ -21,7 +21,7 @@ func _ready():
 		
 		container.add_child(lbl)
 
-func _process(delta):
+func _process(_delta):
 	var cam = get_viewport().get_camera_3d()
 	if not cam: return
 	
