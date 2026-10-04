@@ -1,5 +1,8 @@
 extends Node3D
 
+const WATER_SHADER = preload("res://water.gdshader")
+const WATER_LEVEL := 15.0
+
 @export var chunk_scene: PackedScene # Assign MarchingCubesChunk.tscn here
 @export var player: Node3D # Assign your Player node here
 
@@ -18,11 +21,25 @@ var chunks_to_generate = [] # Array of Vector3i for ordering
 var current_active_tasks: int = 0
 var _last_coord: Vector3i = Vector3i.ZERO
 var has_last_coord: bool = false
+var _water: MeshInstance3D
+var _water_mesh: PlaneMesh
 
 func _ready():
 	noise.seed = randi()
 	noise.frequency = 0.02
 	noise.noise_type = FastNoiseLite.TYPE_PERLIN
+
+	# A single water plane for the whole visible area (one draw call instead
+	# of one transparent plane per chunk).
+	_water = MeshInstance3D.new()
+	var water_mesh = PlaneMesh.new()
+	water_mesh.size = Vector2(1, 1) # sized to the render area in update_chunks()
+	_water_mesh = water_mesh
+	_water.mesh = water_mesh
+	var water_mat = ShaderMaterial.new()
+	water_mat.shader = WATER_SHADER
+	_water.material_override = water_mat
+	add_child(_water)
 
 signal initial_generation_finished
 
@@ -51,6 +68,16 @@ func update_chunks():
 	if has_last_coord and current_coord == _last_coord: return
 	_last_coord = current_coord
 	has_last_coord = true
+
+	# Keep the shared water plane centred on the player's chunk.
+	if _water:
+		var span = (render_distance * 2 + 1) * chunk_world_size
+		_water_mesh.size = Vector2(span, span)
+		_water.position = Vector3(
+			current_chunk_x * chunk_world_size + chunk_world_size / 2.0,
+			WATER_LEVEL,
+			current_chunk_z * chunk_world_size + chunk_world_size / 2.0
+		)
 	
 	# 1. Identify chunks that should exist
 	var target_chunks = {}

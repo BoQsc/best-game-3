@@ -10,8 +10,6 @@ var noise: FastNoiseLite
 
 # Shared resources: built once, reused by every chunk (avoids one material/mesh per chunk).
 static var _terrain_material: ShaderMaterial
-static var _water_material: ShaderMaterial
-static var _water_mesh: PlaneMesh
 
 # We use this to signal the main controller that we are done
 signal generation_complete(chunk_coord)
@@ -27,13 +25,9 @@ const ROCK_TEXTURE = preload("res://rocky-texture.jpg")
 const SNOW_TEXTURE = preload("res://snow-texture.jpg")
 
 const TERRAIN_SHADER = preload("res://terrain.gdshader")
-const WATER_SHADER = preload("res://water.gdshader")
 const TREE_SCENE = preload("res://Tree.tscn")
-const WATER_LEVEL := 15.0
 
 func _ready():
-	var chunk_size = grid_size * scale_factor
-
 	# Terrain receives shadows but does not cast its own (keeps hills from
 	# re-rendering the whole shadow map every frame on low-end hardware).
 	cast_shadow = 0
@@ -50,38 +44,11 @@ func _ready():
 		_terrain_material = mat
 	self.material_override = _terrain_material
 
-	if _water_mesh == null:
-		var water_mesh = PlaneMesh.new()
-		water_mesh.size = Vector2(chunk_size, chunk_size)
-		_water_mesh = water_mesh
-
-	if _water_material == null:
-		var water_mat = ShaderMaterial.new()
-		water_mat.shader = WATER_SHADER
-		_water_material = water_mat
-
-	# Water Plane
-	var water_inst = MeshInstance3D.new()
-	water_inst.mesh = _water_mesh
-	water_inst.material_override = _water_material
-
-	# Position water: centered in X/Z, fixed height in Y
-	# PlaneMesh is centered by default, so we offset it to the center of the chunk
-	water_inst.position = Vector3(chunk_size/2.0, WATER_LEVEL, chunk_size/2.0) 
-
-	# Disable collision for raycasting/physics (visual only)
-	# By default MeshInstance3D has no collision, so this is safe.
-	
-	water_inst.visible = false # shown by _finalize_mesh only if terrain dips below water
-	_water_instance = water_inst
-	add_child(water_inst)
-
 # Threading & Synchronization
 var thread: Thread
 var mutex: Mutex = Mutex.new()
 var field: PackedFloat32Array
 var road_data: PackedFloat32Array
-var _water_instance: MeshInstance3D
 
 func _exit_tree():
 	if thread and thread.is_started():
@@ -369,10 +336,6 @@ func _finalize_mesh(new_mesh, shape, thread_ref):
 	if thread_ref and thread_ref.is_started():
 		thread_ref.wait_to_finish()
 	self.mesh = new_mesh
-
-	# Only draw the water plane when this chunk's terrain actually goes below it.
-	if _water_instance:
-		_water_instance.visible = new_mesh.get_aabb().position.y < WATER_LEVEL
 	
 	# Clear old collision shapes to prevent stacking/ghost collisions
 	for child in get_children():
