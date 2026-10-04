@@ -85,7 +85,7 @@ func find_skeleton(node: Node) -> Skeleton3D:
 	return null
 
 func _physics_process(delta):
-	if current_state == "DEAD":
+	if current_state == "DEAD" or not is_inside_tree():
 		return
 
 	# Gravity
