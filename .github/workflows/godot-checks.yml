@@ -1,0 +1,35 @@
+name: Godot checks
+
+on:
+  push:
+    branches: [main, modernize]
+  pull_request:
+
+jobs:
+  import-and-parse:
+    name: Import project and parse scripts
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Godot 4.7 (headless)
+        run: |
+          wget -q https://github.com/godotengine/godot/releases/download/4.7-stable/Godot_v4.7-stable_linux.x86_64.zip
+          unzip -q Godot_v4.7-stable_linux.x86_64.zip
+          chmod +x Godot_v4.7-stable_linux.x86_64
+          sudo mv Godot_v4.7-stable_linux.x86_64 /usr/local/bin/godot
+
+      - name: Import project (catches broken resources/imports)
+        run: godot --headless --path . --import
+
+      - name: Parse every GDScript
+        run: |
+          fail=0
+          while IFS= read -r -d '' file; do
+            rel="res:/${file#./}"
+            if ! godot --headless --path . --check-only --script "$rel"; then
+              echo "::error file=$file::Script failed to parse"
+              fail=1
+            fi
+          done < <(find . -name '*.gd' -not -path './.godot/*' -print0)
+          exit $fail
