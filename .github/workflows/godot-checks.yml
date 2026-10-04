@@ -33,3 +33,11 @@ jobs:
             fi
           done < <(find . -name '*.gd' -not -path './.godot/*' -print0)
           exit $fail
+
+      - name: Perf smoke run (must not raise script errors)
+        run: |
+          godot --headless --path . --quit-after 400 res://node_3d.tscn 2>&1 | tee smoke.log
+          if grep -q "SCRIPT ERROR" smoke.log; then
+            echo "::error::script error during smoke run"
+            exit 1
+          fi
