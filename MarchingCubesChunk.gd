@@ -217,12 +217,6 @@ func _generate(thread_ref):
 	mutex.unlock()
 
 	# Standard Marching Cubes
-	# Preallocate the per-voxel scratch arrays once (instead of 5 allocations per voxel).
-	var vals := [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
-	var roads := [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
-	var corners := [Vector3(), Vector3(), Vector3(), Vector3(), Vector3(), Vector3(), Vector3(), Vector3()]
-	var vert_list := [Vector3(), Vector3(), Vector3(), Vector3(), Vector3(), Vector3(), Vector3(), Vector3(), Vector3(), Vector3(), Vector3(), Vector3()]
-	var color_list := [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
 	for x in range(grid_size):
 		for y in range(grid_size):
 			for z in range(grid_size):
@@ -230,24 +224,16 @@ func _generate(thread_ref):
 				var idx = x * s2 + y * s + z
 				
 				# Fetch densities
-				vals[0] = field[idx]
-				vals[1] = field[idx + s2]
-				vals[2] = field[idx + s2 + 1]
-				vals[3] = field[idx + 1]
-				vals[4] = field[idx + s]
-				vals[5] = field[idx + s2 + s]
-				vals[6] = field[idx + s2 + s + 1]
-				vals[7] = field[idx + s + 1]
+				var vals = [
+					field[idx], field[idx + s2], field[idx + s2 + 1], field[idx + 1],
+					field[idx + s], field[idx + s2 + s], field[idx + s2 + s + 1], field[idx + s + 1]
+				]
 				
 				# Fetch road weights
-				roads[0] = road_data[idx]
-				roads[1] = road_data[idx + s2]
-				roads[2] = road_data[idx + s2 + 1]
-				roads[3] = road_data[idx + 1]
-				roads[4] = road_data[idx + s]
-				roads[5] = road_data[idx + s2 + s]
-				roads[6] = road_data[idx + s2 + s + 1]
-				roads[7] = road_data[idx + s + 1]
+				var roads = [
+					road_data[idx], road_data[idx + s2], road_data[idx + s2 + 1], road_data[idx + 1],
+					road_data[idx + s], road_data[idx + s2 + s], road_data[idx + s2 + s + 1], road_data[idx + s + 1]
+				]
 				
 				var cube_index = 0
 				if vals[0] < iso_level: cube_index |= 1
@@ -261,14 +247,15 @@ func _generate(thread_ref):
 				
 				if EDGE_TABLE[cube_index] == 0: continue
 				
-				corners[0] = Vector3(x, y, z)
-				corners[1] = Vector3(x+1, y, z)
-				corners[2] = Vector3(x+1, y, z+1)
-				corners[3] = Vector3(x, y, z+1)
-				corners[4] = Vector3(x, y+1, z)
-				corners[5] = Vector3(x+1, y+1, z)
-				corners[6] = Vector3(x+1, y+1, z+1)
-				corners[7] = Vector3(x, y+1, z+1)
+				var corners = [
+					Vector3(x, y, z), Vector3(x+1, y, z), Vector3(x+1, y, z+1), Vector3(x, y, z+1),
+					Vector3(x, y+1, z), Vector3(x+1, y+1, z), Vector3(x+1, y+1, z+1), Vector3(x, y+1, z+1)
+				]
+				
+				var vert_list = []
+				vert_list.resize(12)
+				var color_list = []
+				color_list.resize(12)
 				
 				# Helper lambda for vertex interpolation with color
 				# Not actually using a lambda because of GDScript version potential issues, just inline logic
