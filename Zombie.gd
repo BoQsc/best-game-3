@@ -84,6 +84,9 @@ func find_skeleton(node: Node) -> Skeleton3D:
 		if res: return res
 	return null
 
+func _get_player() -> Node3D:
+	return get_tree().get_first_node_in_group("player")
+
 func _physics_process(delta):
 	if current_state == "DEAD" or not is_inside_tree():
 		return
@@ -135,7 +138,7 @@ func _physics_process(delta):
 			pick_random_direction()
 			change_state("WALK")
 			
-		var player = get_node_or_null("/root/Node3D/PlayerCharacter3D")
+		var player = _get_player()
 		if player and global_position.distance_to(player.global_position) < 2.0:
 			change_state("CHASE")
 			
@@ -150,7 +153,7 @@ func _physics_process(delta):
 		if (wd and wd.is_colliding()) or wander_timer <= 0:
 			change_state("IDLE")
 			
-		var player = get_node_or_null("/root/Node3D/PlayerCharacter3D")
+		var player = _get_player()
 		if player and global_position.distance_to(player.global_position) < 4.0:
 			change_state("CHASE")
 
@@ -160,7 +163,7 @@ func _physics_process(delta):
 		velocity.z = move_toward(velocity.z, 0, friction * delta)
 
 	elif current_state == "CHASE":
-		var player = get_node_or_null("/root/Node3D/PlayerCharacter3D")
+		var player = _get_player()
 		if player:
 			var dist = global_position.distance_to(player.global_position)
 			if dist > 50.0:
@@ -176,7 +179,7 @@ func _physics_process(delta):
 				velocity.z = dir.z * (move_speed * 2.5)
 	
 	elif current_state == "ATTACK":
-		var player = get_node_or_null("/root/Node3D/PlayerCharacter3D")
+		var player = _get_player()
 		if player:
 			var dist = global_position.distance_to(player.global_position)
 			if dist > 2.5:

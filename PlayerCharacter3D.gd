@@ -46,6 +46,7 @@ var max_health: int = 10
 
 func _ready():
 	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
+	add_to_group("player")
 	
 	# Store initial positions for sway
 	if pistol: 
