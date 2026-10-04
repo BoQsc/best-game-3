@@ -362,6 +362,8 @@ func populate_vegetation():
 	var global_z = chunk_coord.z * grid_size
 	
 	var space_state = get_world_3d().direct_space_state
+	# One reused query object instead of allocating one per candidate spot.
+	var query = PhysicsRayQueryParameters3D.create(Vector3.ZERO, Vector3.ZERO)
 	
 	for x in range(2, s - 2, step):
 		for z in range(2, s - 2, step):
@@ -373,9 +375,8 @@ func populate_vegetation():
 				var from_pos = to_global(Vector3(x * scale_factor, grid_size * scale_factor, z * scale_factor))
 				var to_pos = to_global(Vector3(x * scale_factor, -10.0, z * scale_factor))
 				
-				var query = PhysicsRayQueryParameters3D.create(from_pos, to_pos)
-				# Ensure we hit ourselves (the chunk)
-				# query.collide_with_bodies = true (default)
+				query.from = from_pos
+				query.to = to_pos
 				
 				var result = space_state.intersect_ray(query)
 				
