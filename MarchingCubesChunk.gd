@@ -91,12 +91,15 @@ func start_generation(p_chunk_coord, p_grid_size, p_iso_level, p_scale_factor, p
 	terrain_height = p_terrain_height
 	noise = p_noise
 	
-	# Start thread
+	# Start thread (web export is single-threaded, so generate inline there)
 	if thread and thread.is_started():
 		thread.wait_to_finish()
 	
-	thread = Thread.new()
-	thread.start(_generate.bind(thread))
+	if OS.has_feature("web"):
+		_generate(null)
+	else:
+		thread = Thread.new()
+		thread.start(_generate.bind(thread))
 
 func modify_terrain(local_pos: Vector3, radius: float, amount: float, shape: String = "sphere"):
 	# Wait for any existing generation to finish BEFORE touching data
@@ -144,8 +147,11 @@ func modify_terrain(local_pos: Vector3, radius: float, amount: float, shape: Str
 	mutex.unlock()
 
 	if modified:
-		thread = Thread.new()
-		thread.start(_generate.bind(thread))
+		if OS.has_feature("web"):
+			_generate(null)
+		else:
+			thread = Thread.new()
+			thread.start(_generate.bind(thread))
 
 func modify_road(local_pos: Vector3, radius: float, amount: float):
 	if thread and thread.is_started():
@@ -182,8 +188,11 @@ func modify_road(local_pos: Vector3, radius: float, amount: float):
 	mutex.unlock()
 
 	if modified:
-		thread = Thread.new()
-		thread.start(_generate.bind(thread))
+		if OS.has_feature("web"):
+			_generate(null)
+		else:
+			thread = Thread.new()
+			thread.start(_generate.bind(thread))
 
 func _generate(thread_ref):
 	var st = SurfaceTool.new()
@@ -348,7 +357,7 @@ func _generate(thread_ref):
 	call_deferred("_finalize_mesh", st.commit(), thread_ref)
 
 func _finalize_mesh(new_mesh, thread_ref):
-	if thread_ref.is_started():
+	if thread_ref and thread_ref.is_started():
 		thread_ref.wait_to_finish()
 	self.mesh = new_mesh
 
