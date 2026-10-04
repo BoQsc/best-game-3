@@ -34,6 +34,10 @@ const WATER_LEVEL := 15.0
 func _ready():
 	var chunk_size = grid_size * scale_factor
 
+	# Terrain receives shadows but does not cast its own (keeps hills from
+	# re-rendering the whole shadow map every frame on low-end hardware).
+	cast_shadow = 0
+
 	if _terrain_material == null:
 		var mat = ShaderMaterial.new()
 		mat.shader = TERRAIN_SHADER
