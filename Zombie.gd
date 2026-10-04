@@ -16,6 +16,8 @@ var current_state = "IDLE"
 var wander_timer: float = 0.0
 var attack_timer: float = 0.0 # Cooldown
 var stuck_timer: float = 0.0
+var hit_anim_target_time: float = 0.0 # When to stop the hit animation
+var chase_anim_variant: int = 0 # 0 = Standard, 1 = Calm Alerted
 
 # --- Movement ---
 @export var move_speed: float = 1.0
@@ -104,12 +106,24 @@ func _physics_process(delta):
 		if current_state == "IDLE":
 			if t >= 1.0: anim_player.seek(t - 1.0)
 			
-		elif current_state == "WALK" or current_state == "CHASE":
+		elif current_state == "WALK":
 			if t >= 2.0: anim_player.seek(1.0 + (t - 2.0))
+			
+		elif current_state == "CHASE":
+			# Variant 0: Standard Walk/Chase (1.0 - 2.0)
+			if chase_anim_variant == 0:
+				if t >= 2.0: anim_player.seek(1.0 + (t - 2.0))
+			# Variant 1: Calm Walking Alerted (2.07 - 3.0)
+			else:
+				if t >= 3.0: anim_player.seek(2.07 + (t - 3.0))
 			
 		elif current_state == "ATTACK":
 			# Attack Slice: 3.5s to 4.5s
 			if t >= 4.5: anim_player.seek(3.5 + (t - 4.5))
+			
+		elif current_state == "HIT":
+			if t >= hit_anim_target_time:
+				change_state("CHASE") # Return to chase after hit react
 
 	# --- MOVEMENT LOGIC ---
 	if current_state == "IDLE":
@@ -137,8 +151,13 @@ func _physics_process(delta):
 			change_state("IDLE")
 			
 		var player = get_node_or_null("/root/Node3D/PlayerCharacter3D")
-		if player and global_position.distance_to(player.global_position) < 2.0:
+		if player and global_position.distance_to(player.global_position) < 4.0:
 			change_state("CHASE")
+
+	elif current_state == "HIT":
+		# Stop moving while hit
+		velocity.x = move_toward(velocity.x, 0, friction * delta)
+		velocity.z = move_toward(velocity.z, 0, friction * delta)
 
 	elif current_state == "CHASE":
 		var player = get_node_or_null("/root/Node3D/PlayerCharacter3D")
@@ -193,7 +212,25 @@ func change_state(new_state):
 	if anim_player:
 		if new_state == "IDLE": anim_player.seek(0.0)
 		if new_state == "WALK": anim_player.seek(1.0)
+
+		if new_state == "CHASE":
+			# Randomize chase animation variant (50/50 chance)
+			chase_anim_variant = randi() % 2
+			
+			if chase_anim_variant == 0:
+				anim_player.seek(1.0)
+			else:
+				anim_player.seek(2.07)
+				
 		if new_state == "ATTACK": anim_player.seek(3.5)
+		if new_state == "HIT":
+			# Pick one of the two hit animations randomly
+			if randf() > 0.5:
+				anim_player.seek(4.5)
+				hit_anim_target_time = 5.2
+			else:
+				anim_player.seek(5.2)
+				hit_anim_target_time = 5.9
 		
 	if new_state == "IDLE": wander_timer = randf_range(2.0, 4.0)
 	if new_state == "WALK": wander_timer = randf_range(3.0, 6.0)
@@ -214,11 +251,12 @@ func take_damage(amount: int):
 	current_health -= amount
 	print("Zombie took damage! HP: ", current_health)
 	
-	# Flash red effect (optional visual feedback)
-	# spawn_blood_effect() 
-	
 	if current_health <= 0:
 		die()
+	else:
+		# 50% chance to play hit reaction to avoid stunlocking too hard
+		if randf() > 0.0:
+			change_state("HIT")
 
 func die():
 	# Set state to DEAD through the state machine to stop sounds/animations properly
@@ -226,16 +264,17 @@ func die():
 	print("Zombie Died!")
 	velocity = Vector3.ZERO
 	
-	# Disable collision
+	# Disable collision shape so we can walk through the corpse
 	$CollisionShape3D.disabled = true
 	
+	# Animation Death (Restored)
 	if anim_player:
 		anim_player.play("Take 001")
 		anim_player.seek(9.5, true) # Seek to death start
 		
-		# Play the death slice
+		# Play the death slice (approx 0.9s duration based on original code)
 		await get_tree().create_timer(0.9).timeout
-		anim_player.pause() # Stop at the end frame
+		anim_player.pause() # Stop on the floor
 	
 	# Disappear after a delay
 	await get_tree().create_timer(3.0).timeout
