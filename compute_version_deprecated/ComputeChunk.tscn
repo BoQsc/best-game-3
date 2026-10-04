@@ -1,9 +1,0 @@
-[gd_scene load_steps=3 format=3]
-
-[ext_resource type="Script" uid="uid://0tq6cfbmh2lx" path="res://compute_version_deprecated/ComputeChunk.gd" id="1_script"]
-
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_1"]
-albedo_color = Color(0.2, 0.6, 0.3, 1)
-
-[node name="ComputeChunk" type="MeshInstance3D"]
-script = ExtResource("1_script")
