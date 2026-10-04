@@ -6,6 +6,7 @@ var current_health: int
 
 # --- References ---
 @onready var anim_player = $"Sketchfab_Scene zombie".find_child("AnimationPlayer")
+@onready var wall_detector = get_node_or_null("WallDetector")
 
 # --- Sound ---
 const CHASE_SOUND = preload("res://sfx/zombie-sound-2-357976.mp3")
@@ -152,8 +153,7 @@ func _physics_process(delta):
 		
 		wander_timer -= delta
 		
-		var wd = get_node_or_null("WallDetector")
-		if (wd and wd.is_colliding()) or wander_timer <= 0:
+		if (wall_detector and wall_detector.is_colliding()) or wander_timer <= 0:
 			change_state("IDLE")
 			
 		var player = _get_player()
