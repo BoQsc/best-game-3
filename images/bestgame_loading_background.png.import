@@ -4,15 +4,16 @@ importer="texture"
 type="CompressedTexture2D"
 uid="uid://berkdpae2tpnt"
 path.s3tc="res://.godot/imported/bestgame_loading_background.png-7b13726fe3d0afa775705d0dae211a86.s3tc.ctex"
+path.etc2="res://.godot/imported/bestgame_loading_background.png-7b13726fe3d0afa775705d0dae211a86.etc2.ctex"
 metadata={
-"imported_formats": ["s3tc_bptc"],
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
 "vram_texture": true
 }
 
 [deps]
 
 source_file="res://images/bestgame_loading_background.png"
-dest_files=["res://.godot/imported/bestgame_loading_background.png-7b13726fe3d0afa775705d0dae211a86.s3tc.ctex"]
+dest_files=["res://.godot/imported/bestgame_loading_background.png-7b13726fe3d0afa775705d0dae211a86.s3tc.ctex", "res://.godot/imported/bestgame_loading_background.png-7b13726fe3d0afa775705d0dae211a86.etc2.ctex"]
 
 [params]
 

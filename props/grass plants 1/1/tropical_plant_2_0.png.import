@@ -4,8 +4,9 @@ importer="texture"
 type="CompressedTexture2D"
 uid="uid://cgwa1h0qq30r3"
 path.s3tc="res://.godot/imported/tropical_plant_2_0.png-207ee0cc195872186995b14af3ee1186.s3tc.ctex"
+path.etc2="res://.godot/imported/tropical_plant_2_0.png-207ee0cc195872186995b14af3ee1186.etc2.ctex"
 metadata={
-"imported_formats": ["s3tc_bptc"],
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
 "vram_texture": true
 }
 generator_parameters={
@@ -15,7 +16,7 @@ generator_parameters={
 [deps]
 
 source_file="res://props/grass plants 1/1/tropical_plant_2_0.png"
-dest_files=["res://.godot/imported/tropical_plant_2_0.png-207ee0cc195872186995b14af3ee1186.s3tc.ctex"]
+dest_files=["res://.godot/imported/tropical_plant_2_0.png-207ee0cc195872186995b14af3ee1186.s3tc.ctex", "res://.godot/imported/tropical_plant_2_0.png-207ee0cc195872186995b14af3ee1186.etc2.ctex"]
 
 [params]
 

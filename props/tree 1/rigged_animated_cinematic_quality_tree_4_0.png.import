@@ -4,15 +4,16 @@ importer="texture"
 type="CompressedTexture2D"
 uid="uid://dhjrd8mcbku8a"
 path.s3tc="res://.godot/imported/rigged_animated_cinematic_quality_tree_4_0.png-7c5f4ec7dce9a7f8e49c586d5cf50174.s3tc.ctex"
+path.etc2="res://.godot/imported/rigged_animated_cinematic_quality_tree_4_0.png-7c5f4ec7dce9a7f8e49c586d5cf50174.etc2.ctex"
 metadata={
-"imported_formats": ["s3tc_bptc"],
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
 "vram_texture": true
 }
 
 [deps]
 
 source_file="res://props/tree 1/rigged_animated_cinematic_quality_tree_4_0.png"
-dest_files=["res://.godot/imported/rigged_animated_cinematic_quality_tree_4_0.png-7c5f4ec7dce9a7f8e49c586d5cf50174.s3tc.ctex"]
+dest_files=["res://.godot/imported/rigged_animated_cinematic_quality_tree_4_0.png-7c5f4ec7dce9a7f8e49c586d5cf50174.s3tc.ctex", "res://.godot/imported/rigged_animated_cinematic_quality_tree_4_0.png-7c5f4ec7dce9a7f8e49c586d5cf50174.etc2.ctex"]
 
 [params]
 
