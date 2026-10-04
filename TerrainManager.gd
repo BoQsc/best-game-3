@@ -16,6 +16,8 @@ var active_chunks = {} # Key: Vector3i, Value: Chunk Instance
 var chunks_in_queue = {} # Key: Vector3i, Value: true (Fast lookup)
 var chunks_to_generate = [] # Array of Vector3i for ordering
 var current_active_tasks: int = 0
+var _last_coord: Vector3i = Vector3i.ZERO
+var has_last_coord: bool = false
 
 func _ready():
 	noise.seed = randi()
@@ -43,6 +45,12 @@ func update_chunks():
 	var current_chunk_x = int(floor(p_pos.x / chunk_world_size))
 	var current_chunk_z = int(floor(p_pos.z / chunk_world_size))
 	var current_coord = Vector3i(current_chunk_x, 0, current_chunk_z)
+
+	# The target set only depends on the player's chunk, so skip the rebuild
+	# (and the per-frame allocations) while the player stays in the same chunk.
+	if has_last_coord and current_coord == _last_coord: return
+	_last_coord = current_coord
+	has_last_coord = true
 	
 	# 1. Identify chunks that should exist
 	var target_chunks = {}

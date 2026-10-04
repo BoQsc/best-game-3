@@ -8,6 +8,11 @@ var terrain_height: float = 32.0
 var iso_level: float = 0.0
 var noise: FastNoiseLite
 
+# Shared resources: built once, reused by every chunk (avoids one material/mesh per chunk).
+static var _terrain_material: ShaderMaterial
+static var _water_material: ShaderMaterial
+static var _water_mesh: PlaneMesh
+
 # We use this to signal the main controller that we are done
 signal generation_complete(chunk_coord)
 
@@ -26,32 +31,39 @@ const WATER_SHADER = preload("res://water.gdshader")
 const TREE_SCENE = preload("res://Tree.tscn")
 
 func _ready():
-	var mat = ShaderMaterial.new()
-	mat.shader = TERRAIN_SHADER
-	mat.set_shader_parameter("grass_texture", GRASS_TEXTURE)
-	mat.set_shader_parameter("road_texture", ROAD_TEXTURE)
-	mat.set_shader_parameter("sand_texture", SAND_TEXTURE)
-	mat.set_shader_parameter("rock_texture", ROCK_TEXTURE)
-	mat.set_shader_parameter("snow_texture", SNOW_TEXTURE)
-	mat.set_shader_parameter("texture_scale", 0.5) # Adjusted scale for better tiling
-	self.material_override = mat
-	
-	# Water Plane
-	var water_mesh = PlaneMesh.new()
 	var chunk_size = grid_size * scale_factor
-	water_mesh.size = Vector2(chunk_size, chunk_size)
-	
+
+	if _terrain_material == null:
+		var mat = ShaderMaterial.new()
+		mat.shader = TERRAIN_SHADER
+		mat.set_shader_parameter("grass_texture", GRASS_TEXTURE)
+		mat.set_shader_parameter("road_texture", ROAD_TEXTURE)
+		mat.set_shader_parameter("sand_texture", SAND_TEXTURE)
+		mat.set_shader_parameter("rock_texture", ROCK_TEXTURE)
+		mat.set_shader_parameter("snow_texture", SNOW_TEXTURE)
+		mat.set_shader_parameter("texture_scale", 0.5) # Adjusted scale for better tiling
+		_terrain_material = mat
+	self.material_override = _terrain_material
+
+	if _water_mesh == null:
+		var water_mesh = PlaneMesh.new()
+		water_mesh.size = Vector2(chunk_size, chunk_size)
+		_water_mesh = water_mesh
+
+	if _water_material == null:
+		var water_mat = ShaderMaterial.new()
+		water_mat.shader = WATER_SHADER
+		_water_material = water_mat
+
+	# Water Plane
 	var water_inst = MeshInstance3D.new()
-	water_inst.mesh = water_mesh
-	
-	var water_mat = ShaderMaterial.new()
-	water_mat.shader = WATER_SHADER
-	water_inst.material_override = water_mat
-	
+	water_inst.mesh = _water_mesh
+	water_inst.material_override = _water_material
+
 	# Position water: centered in X/Z, fixed height in Y
 	# PlaneMesh is centered by default, so we offset it to the center of the chunk
 	water_inst.position = Vector3(chunk_size/2.0, 15.0, chunk_size/2.0) 
-	
+
 	# Disable collision for raycasting/physics (visual only)
 	# By default MeshInstance3D has no collision, so this is safe.
 	
