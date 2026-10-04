@@ -31,10 +31,13 @@ void vertex() {
 }
 
 vec4 triplanar_texture(sampler2D p_sampler, vec3 p_weights, vec3 p_triplanar_pos) {
-    vec4 samp = vec4(0.0);
-    samp += texture(p_sampler, p_triplanar_pos.xy) * p_weights.z; // Top/Bottom
-    samp += texture(p_sampler, p_triplanar_pos.xz) * p_weights.y; // Front/Back
-    samp += texture(p_sampler, p_triplanar_pos.zy * vec2(-1.0, 1.0)) * p_weights.x; // Left/Right
+    vec4 samp = texture(p_sampler, p_triplanar_pos.xy) * p_weights.z; // Top/Bottom
+    // Only sample the side projections when they actually contribute: for flat
+    // ground the X/Y weights are ~0, so this skips two texture fetches.
+    if (p_weights.x + p_weights.y > 0.001) {
+        samp += texture(p_sampler, p_triplanar_pos.xz) * p_weights.y; // Front/Back
+        samp += texture(p_sampler, p_triplanar_pos.zy * vec2(-1.0, 1.0)) * p_weights.x; // Left/Right
+    }
     return samp;
 }
 
