@@ -45,7 +45,10 @@ var health: int = 10
 var max_health: int = 10
 
 func _ready():
-	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
+	if DisplayServer.is_touchscreen_available():
+		Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+	else:
+		Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 	add_to_group("player")
 	
 	# Store initial positions for sway
@@ -251,6 +254,25 @@ func _unhandled_input(event):
 		rotate_y(-event.relative.x * MOUSE_SENSITIVITY)
 		camera.rotate_x(-event.relative.y * MOUSE_SENSITIVITY)
 		camera.rotation.x = clamp(camera.rotation.x, deg_to_rad(-90), deg_to_rad(90))
+
+	# Touch controls (mobile and touch-capable web):
+	# left half of the screen = walk forward, right half = jump/swim up,
+	# dragging anywhere = look around.
+	elif event is InputEventScreenDrag:
+		mouse_input = event.relative
+		rotate_y(-event.relative.x * MOUSE_SENSITIVITY)
+		camera.rotate_x(-event.relative.y * MOUSE_SENSITIVITY)
+		camera.rotation.x = clamp(camera.rotation.x, deg_to_rad(-90), deg_to_rad(90))
+	elif event is InputEventScreenTouch:
+		var half_width = get_viewport().get_visible_rect().size.x * 0.5
+		if event.pressed:
+			if event.position.x < half_width:
+				Input.action_press("move_forward")
+			else:
+				Input.action_press("ui_accept")
+		else:
+			Input.action_release("move_forward")
+			Input.action_release("ui_accept")
 	
 	if event.is_action_pressed("ui_cancel"):
 		if Input.mouse_mode == Input.MOUSE_MODE_CAPTURED:

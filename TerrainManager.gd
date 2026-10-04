@@ -6,7 +6,7 @@ extends Node3D
 @export_group("Settings")
 @export var render_distance: int = 8 # Increased default
 @export var chunks_per_frame: int = 8 # Process multiple chunks per frame
-@export var max_concurrent_tasks: int = 8 # Limit threads to prevent freezing
+@export var max_concurrent_tasks: int = 4 # Limit threads to prevent freezing (mobile/low-end friendly)
 @export var grid_size: int = 32
 @export var scale_factor: float = 1.0
 @export var terrain_height: float = 30.0
