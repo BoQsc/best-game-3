@@ -22,11 +22,17 @@ var _last_coord: Vector3i = Vector3i.ZERO
 var has_last_coord: bool = false
 var _water: MeshInstance3D
 var _water_mesh: PlaneMesh
+var _max_render_distance: int = 8
+var _quality_check_timer: float = 0.0
+
+const MIN_RENDER_DISTANCE := 4
+const QUALITY_CHECK_INTERVAL := 3.0
 
 func _ready():
 	noise.seed = randi()
 	noise.frequency = 0.02
 	noise.noise_type = FastNoiseLite.TYPE_PERLIN
+	_max_render_distance = render_distance
 
 	# A single water plane for the whole visible area (one draw call instead
 	# of one transparent plane per chunk).
@@ -53,6 +59,24 @@ func _process(delta):
 	if not initial_load_done and not active_chunks.is_empty() and chunks_to_generate.is_empty() and current_active_tasks == 0:
 		initial_load_done = true
 		initial_generation_finished.emit()
+
+	# Adaptive quality once the world has settled.
+	if initial_load_done:
+		_quality_check_timer += delta
+		if _quality_check_timer >= QUALITY_CHECK_INTERVAL:
+			_quality_check_timer = 0.0
+			_adjust_render_distance()
+
+func _adjust_render_distance():
+	# Step the view distance down when the frame rate is poor and back up when
+	# there is headroom (uses the engine's own FPS reading).
+	var fps = Engine.get_frames_per_second()
+	if fps < 30 and render_distance > MIN_RENDER_DISTANCE:
+		render_distance -= 1
+		has_last_coord = false
+	elif fps > 55 and render_distance < _max_render_distance:
+		render_distance += 1
+		has_last_coord = false
 
 func update_chunks():
 	var p_pos = player.global_position
