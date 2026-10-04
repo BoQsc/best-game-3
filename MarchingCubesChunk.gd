@@ -29,6 +29,7 @@ const SNOW_TEXTURE = preload("res://snow-texture.jpg")
 const TERRAIN_SHADER = preload("res://terrain.gdshader")
 const WATER_SHADER = preload("res://water.gdshader")
 const TREE_SCENE = preload("res://Tree.tscn")
+const WATER_LEVEL := 15.0
 
 func _ready():
 	var chunk_size = grid_size * scale_factor
@@ -62,11 +63,13 @@ func _ready():
 
 	# Position water: centered in X/Z, fixed height in Y
 	# PlaneMesh is centered by default, so we offset it to the center of the chunk
-	water_inst.position = Vector3(chunk_size/2.0, 15.0, chunk_size/2.0) 
+	water_inst.position = Vector3(chunk_size/2.0, WATER_LEVEL, chunk_size/2.0) 
 
 	# Disable collision for raycasting/physics (visual only)
 	# By default MeshInstance3D has no collision, so this is safe.
 	
+	water_inst.visible = false # shown by _finalize_mesh only if terrain dips below water
+	_water_instance = water_inst
 	add_child(water_inst)
 
 # Threading & Synchronization
@@ -74,6 +77,7 @@ var thread: Thread
 var mutex: Mutex = Mutex.new()
 var field: PackedFloat32Array
 var road_data: PackedFloat32Array
+var _water_instance: MeshInstance3D
 
 func _exit_tree():
 	if thread and thread.is_started():
@@ -347,6 +351,10 @@ func _finalize_mesh(new_mesh, thread_ref):
 	if thread_ref.is_started():
 		thread_ref.wait_to_finish()
 	self.mesh = new_mesh
+
+	# Only draw the water plane when this chunk's terrain actually goes below it.
+	if _water_instance:
+		_water_instance.visible = new_mesh.get_aabb().position.y < WATER_LEVEL
 	
 	# Clear old collision shapes to prevent stacking/ghost collisions
 	for child in get_children():
