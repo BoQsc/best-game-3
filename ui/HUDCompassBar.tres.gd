@@ -4,6 +4,10 @@ extends Control
 # Width in pixels between each 45-degree increment (N to NE)
 const PX_PER_SECTION = 150.0 
 
+# Last applied x so a stationary camera doesn't re-dirty (and re-draw) the
+# 12-label strip every frame; only move it when the heading actually changes.
+var _last_x: float = INF
+
 func _ready():
 	# Populate the compass strip
 	# Sequence: N NE E SE S SW W NW (Repeat N NE E SE to allow smooth looping)
@@ -49,4 +53,8 @@ func _process(_delta):
 	# We want that x=75 to coincide with ClippedArea center (x=150).
 	# So initial start position of container should be +75.
 	var start_x = 75.0 
-	container.position.x = start_x - offset
+	var new_x = start_x - offset
+	if absf(new_x - _last_x) < 0.01:
+		return
+	_last_x = new_x
+	container.position.x = new_x
