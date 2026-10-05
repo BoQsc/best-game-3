@@ -24,8 +24,8 @@ every 2 s with fps, draw calls, node count, physics/process time and memory.
 | Initial (Forward+) | ~27-37, dips to 8 | 25-86 |
 | After Compatibility + perf pass | **~55-66** | 36-62 |
 
-Steady `[perf]` readings: ~457 draw calls, ~5,000 nodes, physics ~3 ms,
-memory ~540 MB.
+Steady `[perf]` readings: ~156 draw calls, ~2,200 nodes, physics ~3-5 ms,
+memory ~475 MB.
 
 ## What was done (engine-native)
 
@@ -56,11 +56,16 @@ GPU
   their weight is ~0, textures sampled only when their blend weight is non-zero.
 - Terrain chunks receive shadows but do not cast them.
 - HUD item previews render once instead of every frame.
+- Trees are batched with `MultiMeshInstance3D` (one per model surface, per
+  chunk) instead of one scene per tree. The model's skinned meshes are baked to
+  static surfaces once (the tree's `AnimationPlayer` never plays), and per-tree
+  collision is kept as a lightweight `StaticBody3D` so block removal still works.
 
 ## Known remaining costs
 
 - HUD (CanvasItems) is ~1.5-2 ms: the toolbelt (9 slots + 3 previews) plus the
   compass (12 labels). Reducing it means changing the HUD layout.
-- ~457 draw calls, mostly per-tree meshes (each tree is a glTF scene).
-- Trees are placed by raycast and are individual instances; batching them would
-  require a single-mesh tree model.
+- Trees share one model and are drawn via `MultiMeshInstance3D`, so the cost is
+  a few draw calls per chunk with vegetation rather than one per tree.
+- The tree model is still a high-poly cinematic asset; swapping in a low-poly
+  LOD mesh would cut vertex cost further.

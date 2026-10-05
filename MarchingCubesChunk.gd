@@ -27,6 +27,11 @@ const SNOW_TEXTURE = preload("res://snow-texture.jpg")
 const TERRAIN_SHADER = preload("res://terrain.gdshader")
 const TREE_SCENE = preload("res://Tree.tscn")
 
+# Built once from TREE_SCENE: each entry is {mesh, mat, rel} for one surface of
+# the model, with skinning baked out (the tree never plays its animation, so the
+# static bind pose is what was being drawn anyway).
+static var _tree_batches: Array = []
+
 func _ready():
 	# Terrain receives shadows but does not cast its own (keeps hills from
 	# re-rendering the whole shadow map every frame on low-end hardware).
@@ -51,6 +56,13 @@ var field: PackedFloat32Array
 var road_data: PackedFloat32Array
 var _vegetation_queue: Array[Vector2i] = []
 var _pending_shapes: Array = []
+
+# Trees are drawn with MultiMeshInstance3D (one per model surface) instead of
+# one scene per tree, so a chunk costs a few draw calls instead of one per tree.
+# Collision stays per tree so blocks/removal behave exactly as before.
+var _tree_mms: Array[MultiMeshInstance3D] = []
+var _tree_placed: int = 0
+var _tree_capacity: int = 0
 
 func _exit_tree():
 	if thread and thread.is_started():
@@ -423,16 +435,108 @@ func _place_vegetation_batch(count: int):
 				var idx = x * (s+1)*(s+1) + clamp(grid_y, 0, s) * (s+1) + z
 
 				if idx < road_data.size() and road_data[idx] < 0.5:
-					var tree = TREE_SCENE.instantiate()
-					add_child(tree)
-					tree.global_position = result.position
-
-					tree.rotate_y(randf() * TAU)
-					var scale_mod = randf_range(0.8, 1.2)
-					tree.scale = Vector3(scale_mod, scale_mod, scale_mod)
+					_plant_tree(result.position)
 
 	if _vegetation_queue.is_empty():
 		set_process(false)
+
+# --- Tree batching (Godot MultiMesh) -----------------------------------------
+
+static func _static_surface_mesh(src: Mesh, surf: int) -> ArrayMesh:
+	# Drop bones/weights so the (never animated) skinned model can feed a
+	# MultiMesh, which only supports static meshes.
+	var a := src.surface_get_arrays(surf)
+	a[Mesh.ARRAY_BONES] = null
+	a[Mesh.ARRAY_WEIGHTS] = null
+	var am := ArrayMesh.new()
+	am.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, a)
+	var mat := src.surface_get_material(surf)
+	if mat:
+		am.surface_set_material(0, mat)
+	return am
+
+static func _collect_tree_meshes(n: Node, accum: Transform3D, out: Array) -> void:
+	var a := accum
+	if n is Node3D:
+		a = accum * (n as Node3D).transform
+	if n is MeshInstance3D:
+		var mi := n as MeshInstance3D
+		if mi.mesh:
+			for s in range(mi.mesh.get_surface_count()):
+				var mat: Material = mi.material_override
+				if mat == null:
+					mat = mi.mesh.surface_get_material(s)
+				out.append({"mesh": _static_surface_mesh(mi.mesh, s), "mat": mat, "rel": a})
+	for c in n.get_children():
+		_collect_tree_meshes(c, a, out)
+
+static func _build_tree_batches() -> void:
+	if not _tree_batches.is_empty():
+		return
+	var tpl := TREE_SCENE.instantiate()
+	_collect_tree_meshes(tpl, Transform3D(), _tree_batches)
+	tpl.free()
+
+func _ensure_tree_batches(capacity: int) -> void:
+	if not _tree_mms.is_empty():
+		return
+	_build_tree_batches()
+	_tree_capacity = maxi(capacity, 1)
+	for b in _tree_batches:
+		var mmn := MultiMeshInstance3D.new()
+		var mm := MultiMesh.new()
+		mm.transform_format = MultiMesh.TRANSFORM_3D
+		mm.mesh = b["mesh"]
+		mm.instance_count = _tree_capacity
+		mm.visible_instance_count = 0
+		mmn.multimesh = mm
+		if b["mat"]:
+			mmn.material_override = b["mat"]
+		add_child(mmn)
+		_tree_mms.append(mmn)
+
+func _grow_tree_batches(new_capacity: int) -> void:
+	_tree_capacity = new_capacity
+	for mmn in _tree_mms:
+		mmn.multimesh.instance_count = _tree_capacity
+
+func _plant_tree(hit_pos: Vector3) -> void:
+	if _tree_mms.is_empty():
+		_ensure_tree_batches(16)  # only chunks that actually have trees get one
+	var slot := _tree_placed
+	if slot >= _tree_capacity:
+		_grow_tree_batches(slot + 1)
+	var scale_mod := randf_range(0.8, 1.2)
+	var basis := Basis.IDENTITY.scaled(Vector3(scale_mod, scale_mod, scale_mod)).rotated(Vector3.UP, randf() * TAU)
+	var tree_local := Transform3D(basis, to_local(hit_pos))
+	for k in range(_tree_mms.size()):
+		var rel: Transform3D = _tree_batches[k]["rel"]
+		var mm: MultiMesh = _tree_mms[k].multimesh
+		mm.set_instance_transform(slot, tree_local * rel)
+		mm.visible_instance_count = slot + 1
+	# Collision (and the "blocks" group) stays per tree so the existing
+	# block-removal tool still deletes a single tree.
+	var body := StaticBody3D.new()
+	body.add_to_group("blocks")
+	var cs := CollisionShape3D.new()
+	var cyl := CylinderShape3D.new()
+	cyl.height = 4.0
+	cyl.radius = 0.4
+	cs.shape = cyl
+	cs.position = Vector3(0, 2.0, 0)
+	body.add_child(cs)
+	add_child(body)
+	body.global_position = hit_pos
+	body.scale = Vector3(scale_mod, scale_mod, scale_mod)
+	body.tree_exited.connect(Callable(self, "_hide_tree").bind(slot))
+	_tree_placed += 1
+
+func _hide_tree(slot: int) -> void:
+	if not is_inside_tree():
+		return
+	for mmn in _tree_mms:
+		if is_instance_valid(mmn) and mmn.multimesh:
+			mmn.multimesh.set_instance_transform(slot, Transform3D().scaled(Vector3(0.0001, 0.0001, 0.0001)))
 
 func vertex_interp(isolevel: float, p1: Vector3, p2: Vector3, val_p1: float, val_p2: float) -> Vector3:
 	if abs(isolevel - val_p1) < 0.00001: return p1
