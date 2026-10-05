@@ -47,6 +47,9 @@ CPU / streaming
 - Vegetation placement is queued and spread over frames (4 per frame).
 - Reused raycast query per chunk; cached node lookups (player, wall detector).
 - Adaptive render distance: steps down under 30 FPS, back up above 55 FPS.
+- Load gate: play starts once the inner `initial_load_radius` ring of chunks is
+  generated (`initial_generation_finished`); the rest of `render_distance`
+  streams in during play instead of blocking the loading screen.
 
 GPU
 

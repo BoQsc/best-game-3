@@ -8,6 +8,7 @@ const WATER_LEVEL := 15.0
 
 @export_group("Settings")
 @export var render_distance: int = 8 # Increased default
+@export var initial_load_radius: int = 2 # only this ring must exist before play starts
 @export var max_concurrent_tasks: int = 4 # Limit threads to prevent freezing (mobile/low-end friendly)
 @export var grid_size: int = 32
 @export var scale_factor: float = 1.0
@@ -51,13 +52,27 @@ signal initial_generation_finished
 
 var initial_load_done: bool = false
 
+# Play starts once the chunks the player spawns inside are ready; the rest of
+# render_distance streams in during play. These track that inner ring.
+var _initial_coords: Dictionary = {}
+var _initial_ready: Dictionary = {}
+var _initial_total: int = 0
+
+func _compute_initial_coords(center: Vector3i) -> void:
+	if not _initial_coords.is_empty():
+		return
+	for x in range(-initial_load_radius, initial_load_radius + 1):
+		for z in range(-initial_load_radius, initial_load_radius + 1):
+			_initial_coords[center + Vector3i(x, 0, z)] = true
+	_initial_total = _initial_coords.size()
+
 func _process(delta):
 	if not player: return
 	
 	update_chunks()
 	process_generation_queue()
 	
-	if not initial_load_done and not active_chunks.is_empty() and chunks_to_generate.is_empty() and current_active_tasks == 0:
+	if not initial_load_done and _initial_total > 0 and _initial_ready.size() >= _initial_total:
 		initial_load_done = true
 		initial_generation_finished.emit()
 
@@ -92,6 +107,7 @@ func update_chunks():
 	if has_last_coord and current_coord == _last_coord: return
 	_last_coord = current_coord
 	has_last_coord = true
+	_compute_initial_coords(current_coord)
 
 	# Keep the shared water plane centred on the player's chunk.
 	if _water:
@@ -171,6 +187,8 @@ func process_generation_queue():
 
 func _on_chunk_generation_complete(_coord):
 	current_active_tasks -= 1
+	if _initial_coords.has(_coord) and not _initial_ready.has(_coord):
+		_initial_ready[_coord] = true
 
 func modify_terrain(global_pos: Vector3, amount: float, shape: String = "sphere", radius: float = 3.0):
 	var chunk_world_size = grid_size * scale_factor
